@@ -1,7 +1,7 @@
 import requests
 from time import sleep
 
-file = open("token_bot.txt", "r")
+file = open("./src/token_bot.txt", "r")
 token = file.read()
 
 last_update_id = 0
