@@ -3,65 +3,69 @@ from time import sleep
 import mysql.connector
 from mysql.connector import Error
 import pandas as pd
+from bot import Bot
 ENDPOINT = f'https://api.telegram.org/bot{
     open("./docs/token_bot.txt", "r").read()}/'
 
+bot = Bot(open("./docs/token_bot.txt", "r").read())
+last_update_id = 0
 args = ["","","","","",""]  # 0: chat_id, 1: user_id, 2: nome, 3: tipocarburante, 4: capacita, 5: maxkm
 
 def main():
     print("Inizio")
 
     text = ""
-    last_update_id = 0
     
     while True:
-        method = "getUpdates"
-        response = sendMessage(method, {'offset': last_update_id})
-        data = response
-        print(data)
-        if len(data['result']) > 0:
-            last_update_id = data['result'][0]['update_id'] + 1
-            text = data['result'][0]['message']['text']
-            args[0] = data['result'][0]['message']['chat']['id']
-            args[1] = data['result'][0]['message']['from']['id']
+        global last_update_id
+        response = bot.get_updates(last_update_id)
+        print(response)
+        #TODO: non loopare lo start
+        if len(response['result']) > 0:
+            last_update_id = response['result'][0]['update_id'] + 1
+            text = response['result'][0]['message']['text']
+            args[0] = response['result'][0]['message']['chat']['id']
+            args[1] = response['result'][0]['message']['from']['id']
             
         if text == '/start':
-            startChat(last_update_id)
+            startChat()
+            
         
-        if len(data['result']) > 0:
-            last_update_id = data['result'][0]['update_id'] + 1
+        if len(response['result']) > 0:
+            last_update_id = response['result'][0]['update_id'] + 1
 
         sleep(5)
 
-def startChat(last_update_id):
-    #controllo che la chat non esista nel db
+def startChat():
+    global last_update_id
+    global args
     query = "SELECT * FROM chat WHERE id = " + str(args[0])
     result = execute_query(query)
+    #controllo che la chat non esista nel db
     if(len(result)==0):
         #se non esiste la creo
-        sendMessage("sendMessage", {'chat_id': args[0], 'text': 'Ciao, benvenuto nel bot benzinaio!'})
-        data = sendMessage("sendMessage", {'chat_id': args[0], 'text': 'Inserisci il tuo nome: '})
+        bot.send_message(args[0], 'Per prima cosa inserisci i tuoi dati')
+        bot.send_message(args[0], 'Inserisci il tuo nome: ')
         sleep(5)
-        data = sendMessage("getUpdates", {'offset': last_update_id})
-        # last_update_id = data['result'][0]['update_id'] + 1
+        data = bot.get_updates(last_update_id)
         last_update_id = last_update_id + 1
         args[2] = data['result'][0]['message']['text']
         
-        data = sendMessage("sendMessage", {'chat_id': args[0], 'text': 'Inserisci il tipo di carburante del tuo veicolo: '})
+        bot.send_message(args[0], 'Inserisci il tipo di carburante del tuo veicolo: ')
         sleep(5)
-        data = sendMessage("getUpdates", {'offset': last_update_id})
+        data = bot.get_updates(last_update_id)
         last_update_id = last_update_id + 1
         args[3] = data['result'][0]['message']['text']
         
-        data = sendMessage("sendMessage", {'chat_id': args[0], 'text': 'Inserisci la capacita del serbatoio: '})
+        bot.send_message(args[0], 'Inserisci la capacita del serbatoio: ')
         sleep(5)
-        data = sendMessage("getUpdates", {'offset': last_update_id})
+        data = bot.get_updates(last_update_id)
         last_update_id = last_update_id + 1
         args[4] = data['result'][0]['message']['text']
         
-        data = sendMessage("sendMessage", {'chat_id': args[0], 'text': 'Inserisci i km massimi che percorreresti: '})
+        bot.send_message(args[0], 'Inserisci i km massimi che percorreresti: ')
         sleep(5)
-        data = sendMessage("getUpdates", {'offset': last_update_id})
+        data = bot.get_updates(last_update_id)
         last_update_id = last_update_id + 1
         args[5] = data['result'][0]['message']['text']
         print(args)
@@ -80,12 +84,8 @@ def startChat(last_update_id):
         args[3] = result[0][2]
         args[4] = result[0][3]
         args[5] = result[0][4]
-        sendMessage("sendMessage", {'chat_id': args[0], 'text': 'Ciao ' + str(args[2]) + '!'})
-
-def sendMessage(method, parametri):
-    url = ENDPOINT + method
-    response = requests.get(url, params=parametri)
-    return response.json()
+        bot.send_message(args[0], 'Bentornato ' + str(args[2]) + '!')
+        print(args)
 
 def connect_to_database():
     try:
@@ -96,7 +96,7 @@ def connect_to_database():
             database="db_benzinaio"
         )
         if myDB.is_connected():
-            print("Connessione al database avvenuta con successo.")
+            # print("Connessione al database avvenuta con successo.")
             return myDB
     except Error as e:
         print("Errore durante la connessione al database:", e)
@@ -123,7 +123,7 @@ def execute_query(query):
         if myDB is not None and myDB.is_connected():
             cursor.close()
             myDB.close()
-            print("Database connection closed.")
+            # print("Connessione al database chiusa")
 
 
 if __name__ == '__main__':
