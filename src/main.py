@@ -10,11 +10,12 @@ db = Database("localhost", "root", "", "db_benzinaio")
 
 last_update_id = 0
 args = ["","","","","",""]  # 0: chat_id, 1: user_id, 2: nome, 3: tipocarburante, 4: capacita, 5: maxkm
-
+start_executed = False
 def main():
     print("Inizio")
 
     text = ""
+    global start_executed
     
     while True:
         global last_update_id
@@ -27,8 +28,9 @@ def main():
             args[0] = response['result'][0]['message']['chat']['id']
             args[1] = response['result'][0]['message']['from']['id']
             
-        if text == '/start':
+        if text == '/start' and not start_executed:
             startChat()
+            start_executed = True
             
         
         if len(response['result']) > 0:
