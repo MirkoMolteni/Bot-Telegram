@@ -13,11 +13,11 @@ class Database:
     def esegui_query(self, query):
         try:
             if self.myDB.is_connected():
-                print("Query:", query)
+                # print("Query:", query)
                 cursor = self.myDB.cursor()
                 cursor.execute(query)
                 result = cursor.fetchall()
-                print("Risultato della query:", result)
+                # print("Risultato della query:", result)
                 self.myDB.commit()
                 return result
             else:
