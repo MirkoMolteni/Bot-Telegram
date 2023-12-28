@@ -17,7 +17,7 @@ def main():
     text = ""
     global start_executed
     
-    loadPrezzi()
+    # loadPrezzi()
     
     while True:
         global last_update_id
@@ -95,33 +95,40 @@ def loadPrezzi():
     print("Caricamento prezzi...")
     
     db.esegui_query("DELETE FROM prezzi")
-    db.esegui_query("DELETE FROM anagrafica")
+    # db.esegui_query("DELETE FROM anagrafica")
     
-    anagrafica = "https://www.mimit.gov.it/images/exportCSV/anagrafica_impianti_attivi.csv"
-    r = requests.get(anagrafica)
-    # with open("./docs/anagrafica.csv", "wb") as f:
+    # anagrafica = "https://www.mimit.gov.it/images/exportCSV/anagrafica_impianti_attivi.csv"
+    # r = requests.get(anagrafica)
+    # with open("./docs/Csv/anagrafica.csv", "wb") as f:
     #     f.write(r.content)       
-    anagrafica = r.content.decode("utf-8").split("\n")
-    anagrafica.pop(0)
-    anagrafica.pop(0)
+    # anagrafica = r.content.decode("utf-8").split("\n")
+    # anagrafica.pop(0)
+    # anagrafica.pop(0)
+    # anagrafica.pop(len(anagrafica)-1)
     
-    for i in range(len(anagrafica)):
-        anagrafica[i] = anagrafica[i].replace('NULL','').replace("'","").split(";")
-        query = "INSERT INTO anagrafica (ID, Gestore, Bandiera, Tipo, Nome, Indirizzo, Comune, Provincia, Latitudine, Longitudine) VALUES (" + str(anagrafica[i][0]) + ", '" + str(anagrafica[i][1]) + "', '" + str(anagrafica[i][2]) + "', '" + str(anagrafica[i][3]) + "', '" + str(anagrafica[i][4]) + "', '" + str(anagrafica[i][5]) + "', '" + str(anagrafica[i][6]) + "', '" + str(anagrafica[i][7]) + "', " + str(anagrafica[i][8]) + ", " + str(anagrafica[i][9]) + ")"
-        db.esegui_query(query)       
+    # for i in range(len(anagrafica)):
+    #     anagrafica[i] = anagrafica[i].replace('NULL','').replace("'"," ").split(";")
+        
+    #     query = ""
+    #     if len(anagrafica[i]) == 10:
+    #         query = "INSERT INTO anagrafica (ID, Gestore, Bandiera, Tipo, Nome, Indirizzo, Comune, Provincia, Latitudine, Longitudine) VALUES (" + str(anagrafica[i][0]) + ", '" + str(anagrafica[i][1]) + "', '" + str(anagrafica[i][2]) + "', '" + str(anagrafica[i][3]) + "', '" + str(anagrafica[i][4]) + "', '" + str(anagrafica[i][5]) + "', '" + str(anagrafica[i][6]) + "', '" + str(anagrafica[i][7]) + "', " + str(anagrafica[i][8]) + ", " + str(anagrafica[i][9]) + ")"
+    #     else:
+    #         query = "INSERT INTO anagrafica (ID, Gestore, Bandiera, Tipo, Nome, Indirizzo, Comune, Provincia, Latitudine, Longitudine) VALUES (" + str(anagrafica[i][0]) + ", '" + str(anagrafica[i][1]) + "', '" + str(anagrafica[i][2]) + "', '" + str(anagrafica[i][3]) + "', '" + str(anagrafica[i][4]) + "', '" + str(anagrafica[i][5]) + " " +  str(anagrafica[i][6]) + "', '" + str(anagrafica[i][7]) + "', '" + str(anagrafica[i][8]) + "', " + str(anagrafica[i][9]) + ", " + str(anagrafica[i][10]) + ")"
+        
+    #     db.esegui_query(query)       
     
     prezzi = "https://www.mimit.gov.it/images/exportCSV/prezzo_alle_8.csv"
     r = requests.get(prezzi)
-    # with open("./docs/prezzi.csv", "wb") as f:
-    #     f.write(r.content)
+    with open("./docs/Csv/prezzi.csv", "wb") as f:
+        f.write(r.content)
     prezzi = r.content.decode("utf-8").split("\n")
     prezzi.pop(0)
     prezzi.pop(0)
+    prezzi.pop(len(prezzi)-1)
     
     for i in range(len(prezzi)):
         prezzi[i] = prezzi[i].replace('NULL','').replace("'","").split(";")
-        print(prezzi[i])
-        query = "INSERT INTO prezzi (IDImpanto, TipoCarburante, Prezzo, IsSelf, DtComu) VALUES (" + str(prezzi[i][0]) + ", '" + str(prezzi[i][1]) + "', " + str(prezzi[i][2]) + ", " + str(prezzi[i][3]) + ", '" + str(prezzi[i][4]) + "')"
+        query = "INSERT INTO prezzi (IDImpianto, TipoCarburante, Prezzo, IsSelf, DtComu) VALUES (" + str(prezzi[i][0]) + ", '" + str(prezzi[i][1]) + "', " + str(prezzi[i][2]) + ", " + str(prezzi[i][3]) + ", '" + str(prezzi[i][4]) + "')"
         db.esegui_query(query)
     
     print("Prezzi caricati")
