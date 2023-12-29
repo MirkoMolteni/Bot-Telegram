@@ -4,26 +4,25 @@ from bot import Bot
 from database import Database
 
 ENDPOINT = f'https://api.telegram.org/bot{open("./docs/token_bot.txt", "r").read()}/'
-
 bot = Bot(open("./docs/token_bot.txt", "r").read())
 db = Database("localhost", "root", "", "db_benzinaio")
-
 last_update_id = 0
 args = ["","","","","",""]  # 0: chat_id, 1: user_id, 2: nome, 3: tipocarburante, 4: capacita, 5: maxkm
-start_executed = False
+
 def main():
     print("Inizio")
 
     text = ""
-    global start_executed
+    start_executed = False
     
     # loadPrezzi()
     
     while True:
         global last_update_id
+        
         response = bot.get_updates(last_update_id)
         print(response)
-        #TODO: non loopare lo start
+        
         if len(response['result']) > 0:
             last_update_id = response['result'][0]['update_id'] + 1
             text = response['result'][0]['message']['text']
@@ -33,12 +32,18 @@ def main():
         if text == '/start' and not start_executed:
             startChat()
             start_executed = True
+        elif text == '/find':
+            cercaBenzinaio()
             
         
         if len(response['result']) > 0:
             last_update_id = response['result'][0]['update_id'] + 1
 
         sleep(5)
+
+def cercaBenzinaio():
+    global args
+    print(args)
 
 def startChat():
     global last_update_id
