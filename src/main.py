@@ -14,6 +14,7 @@ def main():
 
     text = ""
     start_executed = False
+    find_executed = False
     
     # loadPrezzi()
     
@@ -32,8 +33,9 @@ def main():
         if text == '/start' and not start_executed:
             startChat()
             start_executed = True
-        elif text == '/find':
+        elif text == '/find' and not find_executed:
             cercaBenzinaio()
+            find_executed = True
             
         
         if len(response['result']) > 0:
@@ -42,8 +44,28 @@ def main():
         sleep(5)
 
 def cercaBenzinaio():
+    #TODO: implementare keyboard per la risposta
     global args
-    print(args)
+    global last_update_id
+    bot.send_message(args[0], 'Inserisci la tua posizione: ')
+    sleep(5)
+    data = bot.get_updates(last_update_id)
+    last_update_id = last_update_id + 1
+    lat = data['result'][0]['message']['location']['latitude']
+    lon = data['result'][0]['message']['location']['longitude']
+    print(lat, lon)
+    
+    bot.send_message(args[0], 'Distributore più vicino o distributore più economico?')
+    sleep(5)
+    data = bot.get_updates(last_update_id)
+    last_update_id = last_update_id + 1
+    tipoBenzinaio = data['result'][0]['message']['text']
+    
+    bot.send_message(args[0], 'Quanta benzina vuoi?')
+    sleep(5)
+    data = bot.get_updates(last_update_id)
+    last_update_id = last_update_id + 1
+    quantita = data['result'][0]['message']['text']
 
 def startChat():
     global last_update_id
