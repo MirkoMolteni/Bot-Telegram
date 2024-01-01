@@ -2,6 +2,7 @@ import requests
 from time import sleep
 from bot import Bot
 from database import Database
+from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton 
 
 ENDPOINT = f'https://api.telegram.org/bot{open("./docs/token_bot.txt", "r").read()}/'
 bot = Bot(open("./docs/token_bot.txt", "r").read())
@@ -21,18 +22,25 @@ def main():
     while True:
         global last_update_id
         
+        text=""
+        
         response = bot.get_updates(last_update_id)
         print(response)
         
         if len(response['result']) > 0:
             last_update_id = response['result'][0]['update_id'] + 1
-            text = response['result'][0]['message']['text']
+            try:
+                text = response['result'][0]['message']['text']
+            except:
+                text = ""
             args[0] = response['result'][0]['message']['chat']['id']
             args[1] = response['result'][0]['message']['from']['id']
             
         if text == '/start' and not start_executed:
             startChat()
             start_executed = True
+        elif text == '/redefine':
+            redefine()
         elif text == '/find' and not find_executed:
             cercaBenzinaio()
             find_executed = True
@@ -43,10 +51,16 @@ def main():
 
         sleep(5)
 
+def redefine():
+    #TODO: implementare il redefine
+    print("Ciao")
+
 def cercaBenzinaio():
     #TODO: implementare keyboard per la risposta
     global args
     global last_update_id
+    
+    
     bot.send_message(args[0], 'Inserisci la tua posizione: ')
     sleep(5)
     data = bot.get_updates(last_update_id)
@@ -54,18 +68,31 @@ def cercaBenzinaio():
     lat = data['result'][0]['message']['location']['latitude']
     lon = data['result'][0]['message']['location']['longitude']
     print(lat, lon)
-    
-    bot.send_message(args[0], 'Distributore più vicino o distributore più economico?')
+
+    bot.send_message(args[0], 'Distributore più vicino o distributore più economico? (vicino/economico)')
     sleep(5)
     data = bot.get_updates(last_update_id)
     last_update_id = last_update_id + 1
-    tipoBenzinaio = data['result'][0]['message']['text']
+    tipoBenzinaio = data['result'][0]['message']['text'].lower()
     
-    bot.send_message(args[0], 'Quanta benzina vuoi?')
+    bot.send_message(args[0], 'Quanta benzina vuoi? (1/4, 2/4, 3/4, 4/4))')
     sleep(5)
     data = bot.get_updates(last_update_id)
     last_update_id = last_update_id + 1
     quantita = data['result'][0]['message']['text']
+    
+    if tipoBenzinaio == 'vicino':
+        query = "SELECT * FROM anagrafica ORDER BY SQRT(POW(Latitudine - " + str(lat) + ", 2) + POW(Longitudine - " + str(lon) + ", 2)) ASC LIMIT 1"
+        result = db.esegui_query(query)
+        bot.send_message(args[0], 'Il distributore più vicino è: ' + str(result[0][4]) + ' ' + str(result[0][5]) + ', ' + str(result[0][6]) + ', ' + str(result[0][7]) + ', ' + str(result[0][8]))
+    elif tipoBenzinaio == 'economico':
+        #TODO: utilizzare anche il raggio
+        query = "SELECT * FROM prezzi WHERE TipoCarburante = '" + str(args[3]) + "' ORDER BY Prezzo ASC LIMIT 1"
+        result = db.esegui_query(query)
+        query = "SELECT * FROM anagrafica WHERE ID = " + str(result[0][0])
+        result = db.esegui_query(query)
+        bot.send_message(args[0], 'Il distributore più economico è: ' + str(result[0][4]) + ' ' + str(result[0][5]) + ', ' + str(result[0][6]) + ', ' + str(result[0][7]) + ', ' + str(result[0][8]))
+    
 
 def startChat():
     global last_update_id
