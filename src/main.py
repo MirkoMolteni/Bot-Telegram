@@ -1,8 +1,8 @@
 import requests
-from time import sleep
 from bot import Bot
 from database import Database
 from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton 
+from time import sleep
 
 ENDPOINT = f'https://api.telegram.org/bot{open("./docs/token_bot.txt", "r").read()}/'
 bot = Bot(open("./docs/token_bot.txt", "r").read())
@@ -39,9 +39,9 @@ def main():
         if text == '/start' and not start_executed:
             startChat()
             start_executed = True
-        elif text == '/redefine':
+        elif text == '/redefine' and start_executed:
             redefine()
-        elif text == '/find' and not find_executed:
+        elif text == '/find' and start_executed and not find_executed:
             cercaBenzinaio()
             find_executed = True
             
@@ -53,7 +53,24 @@ def main():
 
 def redefine():
     #TODO: implementare il redefine
-    print("Ciao")
+    #UPDATE `user` SET `id` = '46153681', `Nome` = 'Mirk', `TipoCarburante` = 'Benzin', `Capacita` = '50', `MaxKM` = '3' WHERE `user`.`id` = 461536811
+    global args
+    global last_update_id
+    
+    domandeInizio()
+    
+    query = "UPDATE user SET Nome = '" + str(args[2]) + "', TipoCarburante = '" + str(args[3]) + "', Capacita = " + str(args[4]) + ", MaxKM = " + str(args[5]) + " WHERE id = " + str(args[1])
+    db.esegui_query(query)
+    
+def getRisposta():
+    global last_update_id
+    while True:
+        sleep(5)
+        data = bot.get_updates(last_update_id)
+        if len(data['result']) > 0:
+            last_update_id = last_update_id + 1
+            return data
+            break
 
 def cercaBenzinaio():
     #TODO: implementare keyboard per la risposta
@@ -62,23 +79,18 @@ def cercaBenzinaio():
     
     
     bot.send_message(args[0], 'Inserisci la tua posizione: ')
-    sleep(5)
-    data = bot.get_updates(last_update_id)
-    last_update_id = last_update_id + 1
+
+    data = getRisposta()
     lat = data['result'][0]['message']['location']['latitude']
     lon = data['result'][0]['message']['location']['longitude']
     print(lat, lon)
 
     bot.send_message(args[0], 'Distributore più vicino o distributore più economico? (vicino/economico)')
-    sleep(5)
-    data = bot.get_updates(last_update_id)
-    last_update_id = last_update_id + 1
+    data = getRisposta()
     tipoBenzinaio = data['result'][0]['message']['text'].lower()
     
     bot.send_message(args[0], 'Quanta benzina vuoi? (1/4, 2/4, 3/4, 4/4))')
-    sleep(5)
-    data = bot.get_updates(last_update_id)
-    last_update_id = last_update_id + 1
+    data = getRisposta()
     quantita = data['result'][0]['message']['text']
     
     if tipoBenzinaio == 'vicino':
@@ -101,32 +113,10 @@ def startChat():
     result = db.esegui_query(query)
     #controllo che la chat non esista nel db
     if(len(result)==0):
+        
+        bot.send_message(args[0], 'Ciao! Benvenuto sul bot benzinaio!')
         #se non esiste la creo
-        bot.send_message(args[0], 'Per prima cosa inserisci i tuoi dati')
-        bot.send_message(args[0], 'Inserisci il tuo nome: ')
-        sleep(5)
-        data = bot.get_updates(last_update_id)
-        last_update_id = last_update_id + 1
-        args[2] = data['result'][0]['message']['text']
-        
-        bot.send_message(args[0], 'Inserisci il tipo di carburante del tuo veicolo: ')
-        sleep(5)
-        data = bot.get_updates(last_update_id)
-        last_update_id = last_update_id + 1
-        args[3] = data['result'][0]['message']['text']
-        
-        bot.send_message(args[0], 'Inserisci la capacita del serbatoio: ')
-        sleep(5)
-        data = bot.get_updates(last_update_id)
-        last_update_id = last_update_id + 1
-        args[4] = data['result'][0]['message']['text']
-        
-        bot.send_message(args[0], 'Inserisci i km massimi che percorreresti: ')
-        sleep(5)
-        data = bot.get_updates(last_update_id)
-        last_update_id = last_update_id + 1
-        args[5] = data['result'][0]['message']['text']
-        print(args)
+        domandeInizio()
         
         query = "INSERT INTO user (id, nome, tipocarburante, capacita, maxkm) VALUES (" + str(args[1]) + ", '" + str(args[2]) + "', '" + str(args[3]) + "', " + str(args[4]) + ", " + str(args[5]) + ")"
         db.esegui_query(query)
@@ -144,6 +134,27 @@ def startChat():
         args[5] = result[0][4]
         bot.send_message(args[0], 'Bentornato ' + str(args[2]) + '!')
         print(args)
+        
+def domandeInizio():
+    global args
+    global last_update_id
+    
+    bot.send_message(args[0], 'Per prima cosa inserisci i tuoi dati')
+    bot.send_message(args[0], 'Inserisci il tuo nome: ')
+    data = getRisposta()
+    args[2] = data['result'][0]['message']['text']
+    
+    bot.send_message(args[0], 'Inserisci il tipo di carburante del tuo veicolo: ')
+    data = getRisposta()
+    args[3] = data['result'][0]['message']['text']
+    
+    bot.send_message(args[0], 'Inserisci la capacita del serbatoio: ')
+    data = getRisposta()
+    args[4] = data['result'][0]['message']['text']
+    
+    bot.send_message(args[0], 'Inserisci i km massimi che percorreresti: ')
+    data = getRisposta()
+    args[5] = data['result'][0]['message']['text']
 
 def loadPrezzi():
     print("Caricamento prezzi...")
