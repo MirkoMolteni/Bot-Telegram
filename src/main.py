@@ -1,7 +1,7 @@
 import requests
 from bot import Bot
 from database import Database
-from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton 
+# from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton 
 from time import sleep
 
 ENDPOINT = f'https://api.telegram.org/bot{open("./docs/token_bot.txt", "r").read()}/'
@@ -44,15 +44,25 @@ def main():
         elif text == '/find' and start_executed and not find_executed:
             cercaBenzinaio()
             find_executed = True
+        elif text == '/test':
+            test()
             
         
         if len(response['result']) > 0:
             last_update_id = response['result'][0]['update_id'] + 1
 
         sleep(5)
+        
+def test():
+    headers = {
+        'Accept': 'application/json, application/geo+json, application/gpx+xml, img/png; charset=utf-8',
+    }
+    call = requests.get('https://api.openrouteservice.org/v2/directions/driving-car?api_key=5b3ce3597851110001cf6248baebbace01984be29f6c1eb646189e4d&start=8.681495,49.41461&end=8.687872,49.420318', headers=headers)
+
+    print(call.status_code, call.reason)
+    print(call.text)
 
 def redefine():
-    #TODO: implementare il redefine
     #UPDATE `user` SET `id` = '46153681', `Nome` = 'Mirk', `TipoCarburante` = 'Benzin', `Capacita` = '50', `MaxKM` = '3' WHERE `user`.`id` = 461536811
     global args
     global last_update_id
@@ -70,20 +80,18 @@ def getRisposta():
         if len(data['result']) > 0:
             last_update_id = last_update_id + 1
             return data
-            break
 
 def cercaBenzinaio():
     #TODO: implementare keyboard per la risposta
+    #chiedere a ballerini
     global args
     global last_update_id
-    
     
     bot.send_message(args[0], 'Inserisci la tua posizione: ')
 
     data = getRisposta()
-    lat = data['result'][0]['message']['location']['latitude']
-    lon = data['result'][0]['message']['location']['longitude']
-    print(lat, lon)
+    myLat = data['result'][0]['message']['location']['latitude']
+    myLon = data['result'][0]['message']['location']['longitude']
 
     bot.send_message(args[0], 'Distributore più vicino o distributore più economico? (vicino/economico)')
     data = getRisposta()
@@ -94,18 +102,27 @@ def cercaBenzinaio():
     quantita = data['result'][0]['message']['text']
     
     if tipoBenzinaio == 'vicino':
-        query = "SELECT * FROM anagrafica ORDER BY SQRT(POW(Latitudine - " + str(lat) + ", 2) + POW(Longitudine - " + str(lon) + ", 2)) ASC LIMIT 1"
+        query = "SELECT * FROM anagrafica ORDER BY SQRT(POW(Latitudine - " + str(myLat) + ", 2) + POW(Longitudine - " + str(myLon) + ", 2)) ASC LIMIT 1"
         result = db.esegui_query(query)
         bot.send_message(args[0], 'Il distributore più vicino è: ' + str(result[0][4]) + ' ' + str(result[0][5]) + ', ' + str(result[0][6]) + ', ' + str(result[0][7]) + ', ' + str(result[0][8]))
     elif tipoBenzinaio == 'economico':
         #TODO: utilizzare anche il raggio
-        query = "SELECT * FROM prezzi WHERE TipoCarburante = '" + str(args[3]) + "' ORDER BY Prezzo ASC LIMIT 1"
+        query = "SELECT * FROM prezzi WHERE TipoCarburante = '" + str(args[3]) + "' ORDER BY Prezzo ASC"
         result = db.esegui_query(query)
         query = "SELECT * FROM anagrafica WHERE ID = " + str(result[0][0])
         result = db.esegui_query(query)
+        latBenzinaio = result[0][8]
+        lonBenzinaio = result[0][9]
+        
+        headers = {
+            'Accept': 'application/json, application/geo+json, application/gpx+xml, img/png; charset=utf-8',
+        }
+        call = requests.get(f'https://api.openrouteservice.org/v2/directions/driving-car?api_key={open("./docs/token_directions.txt", "r").read()}&start={myLon},{myLat}&end={lonBenzinaio},{latBenzinaio}', headers=headers)
+        print(call.status_code, call.reason)
+        print(call.text)
+        
         bot.send_message(args[0], 'Il distributore più economico è: ' + str(result[0][4]) + ' ' + str(result[0][5]) + ', ' + str(result[0][6]) + ', ' + str(result[0][7]) + ', ' + str(result[0][8]))
     
-
 def startChat():
     global last_update_id
     global args
@@ -113,7 +130,6 @@ def startChat():
     result = db.esegui_query(query)
     #controllo che la chat non esista nel db
     if(len(result)==0):
-        
         bot.send_message(args[0], 'Ciao! Benvenuto sul bot benzinaio!')
         #se non esiste la creo
         domandeInizio()
