@@ -3,6 +3,7 @@ from bot import Bot
 from database import Database
 # from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton 
 from time import sleep
+import json
 
 ENDPOINT = f'https://api.telegram.org/bot{open("./docs/token_bot.txt", "r").read()}/'
 bot = Bot(open("./docs/token_bot.txt", "r").read())
@@ -54,13 +55,7 @@ def main():
         sleep(5)
         
 def test():
-    headers = {
-        'Accept': 'application/json, application/geo+json, application/gpx+xml, img/png; charset=utf-8',
-    }
-    call = requests.get('https://api.openrouteservice.org/v2/directions/driving-car?api_key=5b3ce3597851110001cf6248baebbace01984be29f6c1eb646189e4d&start=8.681495,49.41461&end=8.687872,49.420318', headers=headers)
-
-    print(call.status_code, call.reason)
-    print(call.text)
+    print("Test")
 
 def redefine():
     #UPDATE `user` SET `id` = '46153681', `Nome` = 'Mirk', `TipoCarburante` = 'Benzin', `Capacita` = '50', `MaxKM` = '3' WHERE `user`.`id` = 461536811
@@ -94,10 +89,12 @@ def cercaBenzinaio():
     myLon = data['result'][0]['message']['location']['longitude']
 
     bot.send_message(args[0], 'Distributore più vicino o distributore più economico? (vicino/economico)')
+    sendKeyboard(args[0], ['Vicino', 'Economico'])
     data = getRisposta()
     tipoBenzinaio = data['result'][0]['message']['text'].lower()
     
     bot.send_message(args[0], 'Quanta benzina vuoi? (1/4, 2/4, 3/4, 4/4))')
+    sendKeyboard(args[0], ['1/4', '2/4', '3/4', '4/4'])
     data = getRisposta()
     quantita = data['result'][0]['message']['text']
     
@@ -117,9 +114,8 @@ def cercaBenzinaio():
         headers = {
             'Accept': 'application/json, application/geo+json, application/gpx+xml, img/png; charset=utf-8',
         }
-        call = requests.get(f'https://api.openrouteservice.org/v2/directions/driving-car?api_key={open("./docs/token_directions.txt", "r").read()}&start={myLon},{myLat}&end={lonBenzinaio},{latBenzinaio}', headers=headers)
-        print(call.status_code, call.reason)
-        print(call.text)
+        call = requests.get(f'https://api.openrouteservice.org/v2/directions/driving-car?api_key={open("./docs/token_directions.txt", "r").read()}&start={myLon},{myLat}&end={lonBenzinaio},{latBenzinaio}', headers=headers).json()
+        
         
         bot.send_message(args[0], 'Il distributore più economico è: ' + str(result[0][4]) + ' ' + str(result[0][5]) + ', ' + str(result[0][6]) + ', ' + str(result[0][7]) + ', ' + str(result[0][8]))
     
@@ -213,6 +209,21 @@ def loadPrezzi():
         db.esegui_query(query)
     
     print("Prezzi caricati")
+
+def sendKeyboard(chat_id, options):
+        url = f"{ENDPOINT}sendMessage"
+        keyboard = {
+            "keyboard": [[{"text": option} for option in options]],
+            "resize_keyboard": True, 
+            "one_time_keyboard": True
+        }
+        payload = {
+            "chat_id": chat_id,
+            "text": "Seleziona un opzione",
+            "reply_markup": json.dumps(keyboard)
+        }
+        requests.post(url, data=payload)
+
 
 if __name__ == '__main__':
     main()
