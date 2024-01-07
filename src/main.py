@@ -77,8 +77,6 @@ def getRisposta():
             return data
 
 def cercaBenzinaio():
-    #TODO: implementare keyboard per la risposta
-    #chiedere a ballerini
     global args
     global last_update_id
     
@@ -104,17 +102,23 @@ def cercaBenzinaio():
         bot.send_message(args[0], 'Il distributore più vicino è: ' + str(result[0][4]) + ' ' + str(result[0][5]) + ', ' + str(result[0][6]) + ', ' + str(result[0][7]) + ', ' + str(result[0][8]))
     elif tipoBenzinaio == 'economico':
         #TODO: utilizzare anche il raggio
-        query = "SELECT * FROM prezzi WHERE TipoCarburante = '" + str(args[3]) + "' ORDER BY Prezzo ASC"
+        query = f"""SELECT a.*, p.prezzo 
+                FROM anagrafica as a 
+                JOIN prezzi as p ON a.ID = p.IDImpianto
+                WHERE p.TipoCarburante = '{args[3]}'""";
         result = db.esegui_query(query)
-        query = "SELECT * FROM anagrafica WHERE ID = " + str(result[0][0])
-        result = db.esegui_query(query)
-        latBenzinaio = result[0][8]
-        lonBenzinaio = result[0][9]
-        
+        valid = []
         headers = {
             'Accept': 'application/json, application/geo+json, application/gpx+xml, img/png; charset=utf-8',
         }
-        call = requests.get(f'https://api.openrouteservice.org/v2/directions/driving-car?api_key={open("./docs/token_directions.txt", "r").read()}&start={myLon},{myLat}&end={lonBenzinaio},{latBenzinaio}', headers=headers).json()
+        maxKm = args[5]
+        for i in range(len(result)):
+            latBenzinaio = result[i][8]
+            lonBenzinaio = result[i][9]
+            call = requests.get(f'https://api.openrouteservice.org/v2/directions/driving-car?api_key={open("./docs/token_directions.txt", "r").read()}&start={myLon},{myLat}&end={lonBenzinaio},{latBenzinaio}', headers=headers).json()
+            if call['features'][0]['properties']['summary']['distance'] < maxKm:
+                valid.append(result[i])
+            
         
         
         bot.send_message(args[0], 'Il distributore più economico è: ' + str(result[0][4]) + ' ' + str(result[0][5]) + ', ' + str(result[0][6]) + ', ' + str(result[0][7]) + ', ' + str(result[0][8]))
