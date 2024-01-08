@@ -102,26 +102,42 @@ def cercaBenzinaio():
         bot.send_message(args[0], 'Il distributore più vicino è: ' + str(result[0][4]) + ' ' + str(result[0][5]) + ', ' + str(result[0][6]) + ', ' + str(result[0][7]) + ', ' + str(result[0][8]))
     elif tipoBenzinaio == 'economico':
         #TODO: utilizzare anche il raggio
-        query = f"""SELECT a.*, p.prezzo 
-                FROM anagrafica as a 
-                JOIN prezzi as p ON a.ID = p.IDImpianto
-                WHERE p.TipoCarburante = '{args[3]}'""";
+        query = f"SELECT a.nome, a.indirizzo, a.comune, a.latitudine, a.longitudine, p.TipoCarburante, p.prezzo FROM anagrafica as a JOIN prezzi as p ON a.ID = p.IDImpianto WHERE p.TipoCarburante = '"+ args[3] + "' AND p.isSelf = 1 ORDER BY SQRT(POW(a.Latitudine - " + str(myLat) + ", 2) + POW(a.Longitudine - " + str(myLon) + ", 2)) ASC ";
         result = db.esegui_query(query)
-        valid = []
+
         headers = {
             'Accept': 'application/json, application/geo+json, application/gpx+xml, img/png; charset=utf-8',
-        }
-        maxKm = args[5]
+        }        
+        bestPrezzo = result[0][6]
+        indexBestPrezzo = 0
+        count = 0
+        api_key = open("./docs/token_directions.txt", "r").read()
         for i in range(len(result)):
-            latBenzinaio = result[i][8]
-            lonBenzinaio = result[i][9]
-            call = requests.get(f'https://api.openrouteservice.org/v2/directions/driving-car?api_key={open("./docs/token_directions.txt", "r").read()}&start={myLon},{myLat}&end={lonBenzinaio},{latBenzinaio}', headers=headers).json()
-            if call['features'][0]['properties']['summary']['distance'] < maxKm:
-                valid.append(result[i])
+            if result[i][6] < bestPrezzo:
+                latBenzinaio = result[i][3]
+                lonBenzinaio = result[i][4]
+                # call = requests.get(f'https://api.openrouteservice.org/v2/directions/driving-car?api_key={api_key}&start={myLon},{myLat}&end={lonBenzinaio},{latBenzinaio}', headers=headers).json()
+                # if call['features'][0]['properties']['summary']['distance'] < args[5]:
+                bestPrezzo = result[i][6]
+                indexBestPrezzo = i
+                count+=1
+        
+        
+        # valid = []
+        # headers = {
+        #     'Accept': 'application/json, application/geo+json, application/gpx+xml, img/png; charset=utf-8',
+        # }
+        # maxKm = args[5]
+        # for i in range(len(result)):
+        #     latBenzinaio = result[i][8]
+        #     lonBenzinaio = result[i][9]
+        #     call = requests.get(f'https://api.openrouteservice.org/v2/directions/driving-car?api_key={open("./docs/token_directions.txt", "r").read()}&start={myLon},{myLat}&end={lonBenzinaio},{latBenzinaio}', headers=headers).json()
+        #     if call['features'][0]['properties']['summary']['distance'] < maxKm:
+        #         valid.append(result[i])
             
         
         
-        bot.send_message(args[0], 'Il distributore più economico è: ' + str(result[0][4]) + ' ' + str(result[0][5]) + ', ' + str(result[0][6]) + ', ' + str(result[0][7]) + ', ' + str(result[0][8]))
+        bot.send_message(args[0], "Nome benzinaio: " + str(result[indexBestPrezzo][0]) + "\nIndirizzo: " + str(result[indexBestPrezzo][1]) + "\nComune: " + str(result[indexBestPrezzo][2]) + "\nPrezzo: " + str(result[indexBestPrezzo][6]) + "\nTipo carburante: " + str(result[indexBestPrezzo][5]))
     
 def startChat():
     global last_update_id
